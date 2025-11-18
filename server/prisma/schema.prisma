@@ -24,13 +24,15 @@ model User {
 }
 
 model Workspace {
-  id        String            @id @default(uuid())
-  name      String
-  icon      String?
-  members   WorkspaceMember[]
-  pages     Page[]
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id         String            @id @default(uuid())
+  name       String
+  icon       String?
+  members    WorkspaceMember[]
+  pages      Page[]
+  templates  Template[]
+  syncBlocks SyncBlock[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   @@map("workspaces")
 }
@@ -50,20 +52,22 @@ model WorkspaceMember {
 }
 
 model Page {
-  id          String    @id @default(uuid())
-  title       String    @default("Untitled")
+  id          String     @id @default(uuid())
+  title       String     @default("Untitled")
   icon        String?
   coverImage  String?
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
-  parentPage  Page?     @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  parentPage  Page?      @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   parentId    String?
-  childPages  Page[]    @relation("PageHierarchy")
+  childPages  Page[]     @relation("PageHierarchy")
   blocks      Block[]
-  isPublished Boolean   @default(false)
+  linksFrom   PageLink[] @relation("SourceLinks") // Links from this page to others
+  linksTo     PageLink[] @relation("TargetLinks") // Links from other pages to this page
+  isPublished Boolean    @default(false)
   createdBy   String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@index([workspaceId])
   @@index([parentId])
@@ -163,4 +167,56 @@ model DatabaseView {
   @@index([databaseId])
   @@index([order])
   @@map("database_views")
+}
+
+// Template and Advanced Features (Phase 5)
+model Template {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  icon        String?
+  category    String?   // e.g., "Work", "Personal", "Education"
+  blocks      Json      // Template block structure with content
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  isPublic    Boolean   @default(false) // Public templates available to all users
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
+  @@index([isPublic])
+  @@index([category])
+  @@map("templates")
+}
+
+model SyncBlock {
+  id          String   @id @default(uuid())
+  name        String   // Name for the sync block
+  content     Json     // The synchronized content
+  blockType   String   // Type of block (text, heading, etc.)
+  instances   String[] // Array of block IDs that sync with this source
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@map("sync_blocks")
+}
+
+model PageLink {
+  id           String   @id @default(uuid())
+  sourcePage   Page     @relation("SourceLinks", fields: [sourcePageId], references: [id], onDelete: Cascade)
+  sourcePageId String
+  targetPage   Page     @relation("TargetLinks", fields: [targetPageId], references: [id], onDelete: Cascade)
+  targetPageId String
+  blockId      String?  // Optional: specific block that contains the link
+  createdAt    DateTime @default(now())
+
+  @@unique([sourcePageId, targetPageId, blockId])
+  @@index([sourcePageId])
+  @@index([targetPageId])
+  @@map("page_links")
 }

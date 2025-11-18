@@ -10,6 +10,8 @@ import { workspaceRouter } from './routes/workspace.routes';
 import { pageRouter } from './routes/page.routes';
 import { blockRouter } from './routes/block.routes';
 import { databaseRouter } from './routes/database.routes';
+import { templateRouter } from './routes/template.routes';
+import { searchRouter } from './routes/search.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { setupSocketServer } from './socket/socketServer';
 import { setupYjsServer } from './yjs/yjsServer';
@@ -46,6 +48,8 @@ app.use('/api/workspaces', workspaceRouter);
 app.use('/api/pages', pageRouter);
 app.use('/api/blocks', blockRouter);
 app.use('/api/databases', databaseRouter);
+app.use('/api/templates', templateRouter);
+app.use('/api/search', searchRouter);
 
 // Error handling
 app.use(errorHandler);
