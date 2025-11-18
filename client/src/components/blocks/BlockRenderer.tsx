@@ -7,6 +7,7 @@ import { NumberedListBlock } from './NumberedListBlock';
 import { TodoBlock } from './TodoBlock';
 import { QuoteBlock } from './QuoteBlock';
 import { CodeBlock } from './CodeBlock';
+import { DatabaseBlock } from '../database/DatabaseBlock';
 
 interface BlockRendererProps {
   block: Block;
@@ -51,6 +52,9 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 
     case 'divider':
       return <hr className="my-4 border-notion-border" />;
+
+    case 'database':
+      return <DatabaseBlock blockId={block.id} />;
 
     default:
       return <TextBlock block={block} onUpdate={onUpdate} onEnter={onEnter} onBackspace={onBackspace} />;

@@ -50,7 +50,8 @@ export type BlockType =
   | 'number'
   | 'quote'
   | 'code'
-  | 'divider';
+  | 'divider'
+  | 'database';
 
 export interface Block {
   id: string;
@@ -89,4 +90,86 @@ export interface RegisterCredentials {
   email: string;
   password: string;
   name?: string;
+}
+
+// Database types
+export type PropertyType =
+  | 'text'
+  | 'number'
+  | 'select'
+  | 'multi-select'
+  | 'date'
+  | 'checkbox'
+  | 'url'
+  | 'email'
+  | 'phone'
+  | 'relation';
+
+export interface DatabaseProperty {
+  id: string;
+  databaseId: string;
+  name: string;
+  type: PropertyType;
+  config?: {
+    options?: { id: string; name: string; color: string }[];
+    relationDatabaseId?: string;
+    format?: string;
+  };
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DatabaseRow {
+  id: string;
+  databaseId: string;
+  pageId?: string | null;
+  values: Record<string, any>;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ViewType = 'table' | 'list' | 'board' | 'calendar' | 'gallery';
+
+export interface DatabaseView {
+  id: string;
+  databaseId: string;
+  name: string;
+  type: ViewType;
+  config: {
+    filters?: Filter[];
+    sorts?: Sort[];
+    groupBy?: string;
+    hiddenProperties?: string[];
+  };
+  order: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Database {
+  id: string;
+  blockId: string;
+  name: string;
+  icon?: string | null;
+  properties: DatabaseProperty[];
+  rows: DatabaseRow[];
+  views: DatabaseView[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Filter {
+  id: string;
+  propertyId: string;
+  operator: string;
+  value: any;
+}
+
+export interface Sort {
+  id: string;
+  propertyId: string;
+  direction: 'asc' | 'desc';
 }

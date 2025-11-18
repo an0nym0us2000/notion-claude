@@ -101,3 +101,66 @@ model YjsDocument {
 
   @@map("yjs_documents")
 }
+
+// Database models (Phase 4)
+model Database {
+  id         String             @id @default(uuid())
+  blockId    String             @unique // Link to Block with type='database'
+  name       String             @default("Untitled Database")
+  icon       String?
+  properties DatabaseProperty[]
+  rows       DatabaseRow[]
+  views      DatabaseView[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@map("databases")
+}
+
+model DatabaseProperty {
+  id         String   @id @default(uuid())
+  database   Database @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+  databaseId String
+  name       String
+  type       String // text, number, select, multi-select, date, checkbox, relation, url, email, phone, files
+  config     Json? // Options for select types, relation config, format settings
+  order      Float // For ordering properties
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([databaseId])
+  @@index([order])
+  @@map("database_properties")
+}
+
+model DatabaseRow {
+  id         String   @id @default(uuid())
+  database   Database @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+  databaseId String
+  pageId     String?  @unique // Each row can optionally be a full page
+  values     Json // Property values as key-value pairs { propertyId: value }
+  order      Float // For ordering rows
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([databaseId])
+  @@index([order])
+  @@map("database_rows")
+}
+
+model DatabaseView {
+  id         String   @id @default(uuid())
+  database   Database @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+  databaseId String
+  name       String
+  type       String // table, list, board, calendar, gallery
+  config     Json // View settings: filters, sorts, group by, hidden properties, etc.
+  order      Float // For ordering views
+  isDefault  Boolean  @default(false) // One default view per database
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([databaseId])
+  @@index([order])
+  @@map("database_views")
+}

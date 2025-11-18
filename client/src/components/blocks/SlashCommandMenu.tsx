@@ -80,6 +80,13 @@ const BLOCK_COMMANDS: BlockCommand[] = [
     icon: '—',
     keywords: ['divider', 'separator', 'line', 'hr'],
   },
+  {
+    type: 'database',
+    label: 'Database',
+    description: 'Create a database with table, list, and board views',
+    icon: '🗂️',
+    keywords: ['database', 'table', 'spreadsheet', 'data', 'collection', 'board', 'kanban'],
+  },
 ];
 
 interface SlashCommandMenuProps {

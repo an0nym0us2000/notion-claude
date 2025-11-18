@@ -9,6 +9,7 @@ import { authRouter } from './routes/auth.routes';
 import { workspaceRouter } from './routes/workspace.routes';
 import { pageRouter } from './routes/page.routes';
 import { blockRouter } from './routes/block.routes';
+import { databaseRouter } from './routes/database.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { setupSocketServer } from './socket/socketServer';
 import { setupYjsServer } from './yjs/yjsServer';
@@ -44,6 +45,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/workspaces', workspaceRouter);
 app.use('/api/pages', pageRouter);
 app.use('/api/blocks', blockRouter);
+app.use('/api/databases', databaseRouter);
 
 // Error handling
 app.use(errorHandler);
