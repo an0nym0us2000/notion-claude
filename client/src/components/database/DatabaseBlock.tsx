@@ -4,6 +4,8 @@ import { api } from '@/lib/api';
 import { TableView } from './TableView';
 import { ListView } from './ListView';
 import { BoardView } from './BoardView';
+import { FilterMenu } from './FilterMenu';
+import { SortMenu } from './SortMenu';
 
 interface DatabaseBlockProps {
   blockId: string;
@@ -18,6 +20,8 @@ export const DatabaseBlock: React.FC<DatabaseBlockProps> = ({
   const [currentView, setCurrentView] = useState<DatabaseView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   useEffect(() => {
     loadDatabase();
@@ -158,6 +162,31 @@ export const DatabaseBlock: React.FC<DatabaseBlockProps> = ({
     }
   };
 
+  const handleUpdateView = async (viewId: string, updates: Partial<DatabaseView>) => {
+    if (!database) return;
+
+    try {
+      await api.patch(`/api/databases/views/${viewId}`, updates);
+
+      // Update database views
+      const updatedViews = database.views.map((v) =>
+        v.id === viewId ? { ...v, ...updates } : v
+      );
+
+      setDatabase({
+        ...database,
+        views: updatedViews,
+      });
+
+      // Update current view if it's the one being updated
+      if (currentView?.id === viewId) {
+        setCurrentView({ ...currentView, ...updates });
+      }
+    } catch (err) {
+      console.error('Error updating view:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 bg-notion-bg-secondary rounded">
@@ -181,7 +210,7 @@ export const DatabaseBlock: React.FC<DatabaseBlockProps> = ({
     <div className="bg-notion-bg-secondary rounded-lg border border-notion-border">
       {/* Database Header */}
       <div className="px-4 py-3 border-b border-notion-border">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             {database.icon && <span className="text-xl">{database.icon}</span>}
             <input
@@ -216,6 +245,59 @@ export const DatabaseBlock: React.FC<DatabaseBlockProps> = ({
               </button>
             )}
           </div>
+        </div>
+
+        {/* Filter and Sort Controls */}
+        <div className="flex items-center gap-2 relative">
+          <button
+            onClick={() => {
+              setShowFilterMenu(!showFilterMenu);
+              setShowSortMenu(false);
+            }}
+            className={`px-3 py-1.5 text-sm border border-notion-border rounded hover:bg-notion-hover ${
+              (currentView.config.filters?.length || 0) > 0 ? 'bg-blue-50 border-notion-blue text-notion-blue' : 'bg-white'
+            }`}
+          >
+            🔍 Filter
+            {(currentView.config.filters?.length || 0) > 0 && (
+              <span className="ml-1 font-medium">({currentView.config.filters?.length})</span>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              setShowSortMenu(!showSortMenu);
+              setShowFilterMenu(false);
+            }}
+            className={`px-3 py-1.5 text-sm border border-notion-border rounded hover:bg-notion-hover ${
+              (currentView.config.sorts?.length || 0) > 0 ? 'bg-blue-50 border-notion-blue text-notion-blue' : 'bg-white'
+            }`}
+          >
+            ↕️ Sort
+            {(currentView.config.sorts?.length || 0) > 0 && (
+              <span className="ml-1 font-medium">({currentView.config.sorts?.length})</span>
+            )}
+          </button>
+
+          {/* Filter Menu */}
+          {showFilterMenu && (
+            <FilterMenu
+              database={database}
+              view={currentView}
+              onUpdateView={handleUpdateView}
+              onClose={() => setShowFilterMenu(false)}
+            />
+          )}
+
+          {/* Sort Menu */}
+          {showSortMenu && (
+            <SortMenu
+              database={database}
+              view={currentView}
+              onUpdateView={handleUpdateView}
+              onClose={() => setShowSortMenu(false)}
+            />
+          )}
         </div>
       </div>
 
