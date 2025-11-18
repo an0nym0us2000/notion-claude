@@ -5,6 +5,7 @@ import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
 import * as Y from 'yjs';
 import type { Block } from '@/lib/types';
 import { YjsProvider } from '@/lib/yjsProvider';
@@ -69,6 +70,7 @@ export const CollaborativeTextBlock: React.FC<CollaborativeTextBlockProps> = ({
       Link.configure({
         openOnClick: false,
       }),
+      Underline,
       Placeholder.configure({
         placeholder: "Type '/' for commands...",
       }),

@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
 import type { Block } from '@/lib/types';
 import { blockAPI } from '@/lib/api';
 
@@ -43,6 +44,7 @@ export const HeadingBlock: React.FC<HeadingBlockProps> = ({
       Link.configure({
         openOnClick: false,
       }),
+      Underline,
       Placeholder.configure({
         placeholder: placeholders[level],
       }),
