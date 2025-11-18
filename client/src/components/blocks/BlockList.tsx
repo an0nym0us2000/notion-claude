@@ -6,6 +6,7 @@ import { BlockRenderer } from './BlockRenderer';
 import { SlashCommandMenu } from './SlashCommandMenu';
 import { BlockActionsMenu } from './BlockActionsMenu';
 import { DraggableBlock } from './DraggableBlock';
+import { NestedBlockList } from './NestedBlockList';
 import { usePageStore } from '@/stores/pageStore';
 import { blockAPI } from '@/lib/api';
 
@@ -58,10 +59,55 @@ export const BlockList: React.FC<BlockListProps> = ({ blocks, pageId }) => {
     }
   };
 
+  // Indent block (make it a child of previous sibling)
+  const handleIndent = async (blockId: string) => {
+    const block = blocks.find((b) => b.id === blockId);
+    if (!block) return;
+
+    // Find previous sibling at same level
+    const siblings = blocks
+      .filter((b) => b.parentId === block.parentId)
+      .sort((a, b) => a.order - b.order);
+
+    const blockIndex = siblings.findIndex((b) => b.id === blockId);
+    if (blockIndex <= 0) return; // Can't indent first block or if not found
+
+    const previousSibling = siblings[blockIndex - 1];
+
+    try {
+      // Update to make this block a child of previous sibling
+      const updatedBlock = await blockAPI.update(blockId, {
+        parentId: previousSibling.id,
+      });
+      updateBlock(blockId, updatedBlock);
+    } catch (error) {
+      console.error('Failed to indent block:', error);
+    }
+  };
+
+  // Outdent block (make it a sibling of its parent)
+  const handleOutdent = async (blockId: string) => {
+    const block = blocks.find((b) => b.id === blockId);
+    if (!block || !block.parentId) return; // Already at top level
+
+    const parent = blocks.find((b) => b.id === block.parentId);
+    if (!parent) return;
+
+    try {
+      // Update to make this block a sibling of its parent
+      const updatedBlock = await blockAPI.update(blockId, {
+        parentId: parent.parentId,
+      });
+      updateBlock(blockId, updatedBlock);
+    } catch (error) {
+      console.error('Failed to outdent block:', error);
+    }
+  };
+
   // Sort blocks by order
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
 
-  // Only render top-level blocks (nested blocks will be handled later)
+  // Only render top-level blocks (nested blocks will be handled recursively)
   const topLevelBlocks = sortedBlocks.filter((block) => !block.parentId);
 
   // Drag and drop handler
@@ -115,11 +161,6 @@ export const BlockList: React.FC<BlockListProps> = ({ blocks, pageId }) => {
     }
   };
 
-  const handleSlash = (blockId: string) => {
-    setShowSlashMenu(true);
-    setSlashMenuBlockId(blockId);
-  };
-
   const handleSlashMenuSelect = async (type: BlockType) => {
     if (slashMenuBlockId) {
       await handleConvertBlock(slashMenuBlockId, type);
@@ -143,32 +184,24 @@ export const BlockList: React.FC<BlockListProps> = ({ blocks, pageId }) => {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="space-y-0.5">
-        {topLevelBlocks.map((block, index) => (
-          <DraggableBlock
-            key={block.id}
-            block={block}
-            index={index}
-            onMove={moveBlock}
-          >
-            <BlockActionsMenu
-              onDelete={() => handleDeleteBlock(block.id)}
-              onDuplicate={() => handleDuplicateBlock(block.id)}
-              onTurnInto={(type) => handleConvertBlock(block.id, type)}
-            />
-            <BlockRenderer
-              block={block}
-              onUpdate={handleBlockUpdate}
-              onEnter={() => handleEnter(block.id)}
-              onBackspace={() => handleBackspace(block.id)}
-            />
-            {showSlashMenu && slashMenuBlockId === block.id && (
-              <SlashCommandMenu
-                onSelect={handleSlashMenuSelect}
-                onClose={handleSlashMenuClose}
-              />
-            )}
-          </DraggableBlock>
-        ))}
+        <NestedBlockList
+          blocks={sortedBlocks}
+          parentId={null}
+          level={0}
+          showSlashMenu={showSlashMenu}
+          slashMenuBlockId={slashMenuBlockId}
+          onMove={moveBlock}
+          onUpdate={handleBlockUpdate}
+          onEnter={handleEnter}
+          onBackspace={handleBackspace}
+          onDelete={handleDeleteBlock}
+          onDuplicate={handleDuplicateBlock}
+          onTurnInto={handleConvertBlock}
+          onSlashSelect={handleSlashMenuSelect}
+          onSlashClose={handleSlashMenuClose}
+          onIndent={handleIndent}
+          onOutdent={handleOutdent}
+        />
       </div>
     </DndProvider>
   );
