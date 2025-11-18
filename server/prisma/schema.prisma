@@ -44,6 +44,7 @@ model WorkspaceMember {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
   role        String    @default("member") // owner, admin, member, viewer
+  permissions Json?     // { canEdit, canComment, canShare, canInvite, canCreatePage, canDeletePage }
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -52,22 +53,23 @@ model WorkspaceMember {
 }
 
 model Page {
-  id          String     @id @default(uuid())
-  title       String     @default("Untitled")
+  id          String      @id @default(uuid())
+  title       String      @default("Untitled")
   icon        String?
   coverImage  String?
-  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
-  parentPage  Page?      @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  parentPage  Page?       @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   parentId    String?
-  childPages  Page[]     @relation("PageHierarchy")
+  childPages  Page[]      @relation("PageHierarchy")
   blocks      Block[]
-  linksFrom   PageLink[] @relation("SourceLinks") // Links from this page to others
-  linksTo     PageLink[] @relation("TargetLinks") // Links from other pages to this page
-  isPublished Boolean    @default(false)
+  linksFrom   PageLink[]  @relation("SourceLinks") // Links from this page to others
+  linksTo     PageLink[]  @relation("TargetLinks") // Links from other pages to this page
+  shares      PageShare[]
+  isPublished Boolean     @default(false)
   createdBy   String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([workspaceId])
   @@index([parentId])
@@ -219,4 +221,24 @@ model PageLink {
   @@index([sourcePageId])
   @@index([targetPageId])
   @@map("page_links")
+}
+
+// Page Sharing (Phase 6)
+model PageShare {
+  id          String    @id @default(uuid())
+  page        Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId      String
+  token       String    @unique // Unique token for sharing URL
+  password    String?   // Optional password protection
+  expiresAt   DateTime? // Optional expiration date
+  allowEdit   Boolean   @default(false) // Allow public editing
+  allowComment Boolean  @default(true) // Allow public comments
+  createdBy   String // User ID who created the share
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([pageId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("page_shares")
 }
