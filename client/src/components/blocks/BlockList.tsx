@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import type { Block, BlockType } from '@/lib/types';
 import { BlockRenderer } from './BlockRenderer';
 import { SlashCommandMenu } from './SlashCommandMenu';
 import { BlockActionsMenu } from './BlockActionsMenu';
+import { DraggableBlock } from './DraggableBlock';
 import { usePageStore } from '@/stores/pageStore';
 import { blockAPI } from '@/lib/api';
 
@@ -61,6 +64,46 @@ export const BlockList: React.FC<BlockListProps> = ({ blocks, pageId }) => {
   // Only render top-level blocks (nested blocks will be handled later)
   const topLevelBlocks = sortedBlocks.filter((block) => !block.parentId);
 
+  // Drag and drop handler
+  const moveBlock = useCallback(async (dragIndex: number, hoverIndex: number) => {
+    const draggedBlock = topLevelBlocks[dragIndex];
+    const targetBlock = topLevelBlocks[hoverIndex];
+
+    if (!draggedBlock || !targetBlock) return;
+
+    try {
+      // Calculate new order between blocks
+      let newOrder: number;
+
+      if (hoverIndex === 0) {
+        // Moving to top
+        newOrder = topLevelBlocks[0].order / 2;
+      } else if (hoverIndex === topLevelBlocks.length - 1) {
+        // Moving to bottom
+        newOrder = topLevelBlocks[topLevelBlocks.length - 1].order + 1;
+      } else {
+        // Moving between blocks
+        const prevBlock = topLevelBlocks[hoverIndex - 1];
+        const nextBlock = topLevelBlocks[hoverIndex];
+        newOrder = (prevBlock.order + nextBlock.order) / 2;
+      }
+
+      // Optimistic update
+      updateBlock(draggedBlock.id, { ...draggedBlock, order: newOrder });
+
+      // Server update
+      await blockAPI.reorder({
+        blockId: draggedBlock.id,
+        pageId,
+        afterBlockId: hoverIndex > 0 ? topLevelBlocks[hoverIndex - 1].id : undefined,
+      });
+    } catch (error) {
+      console.error('Failed to reorder block:', error);
+      // Revert on error
+      updateBlock(draggedBlock.id, draggedBlock);
+    }
+  }, [topLevelBlocks, pageId, updateBlock]);
+
   const handleEnter = async (blockId: string) => {
     await handleCreateBlock(blockId, 'text');
   };
@@ -98,28 +141,35 @@ export const BlockList: React.FC<BlockListProps> = ({ blocks, pageId }) => {
   };
 
   return (
-    <div className="space-y-0.5">
-      {topLevelBlocks.map((block) => (
-        <div key={block.id} className="relative group">
-          <BlockActionsMenu
-            onDelete={() => handleDeleteBlock(block.id)}
-            onDuplicate={() => handleDuplicateBlock(block.id)}
-            onTurnInto={(type) => handleConvertBlock(block.id, type)}
-          />
-          <BlockRenderer
+    <DndProvider backend={HTML5Backend}>
+      <div className="space-y-0.5">
+        {topLevelBlocks.map((block, index) => (
+          <DraggableBlock
+            key={block.id}
             block={block}
-            onUpdate={handleBlockUpdate}
-            onEnter={() => handleEnter(block.id)}
-            onBackspace={() => handleBackspace(block.id)}
-          />
-          {showSlashMenu && slashMenuBlockId === block.id && (
-            <SlashCommandMenu
-              onSelect={handleSlashMenuSelect}
-              onClose={handleSlashMenuClose}
+            index={index}
+            onMove={moveBlock}
+          >
+            <BlockActionsMenu
+              onDelete={() => handleDeleteBlock(block.id)}
+              onDuplicate={() => handleDuplicateBlock(block.id)}
+              onTurnInto={(type) => handleConvertBlock(block.id, type)}
             />
-          )}
-        </div>
-      ))}
-    </div>
+            <BlockRenderer
+              block={block}
+              onUpdate={handleBlockUpdate}
+              onEnter={() => handleEnter(block.id)}
+              onBackspace={() => handleBackspace(block.id)}
+            />
+            {showSlashMenu && slashMenuBlockId === block.id && (
+              <SlashCommandMenu
+                onSelect={handleSlashMenuSelect}
+                onClose={handleSlashMenuClose}
+              />
+            )}
+          </DraggableBlock>
+        ))}
+      </div>
+    </DndProvider>
   );
 };
