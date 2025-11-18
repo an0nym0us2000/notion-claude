@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Database, DatabaseView, DatabaseProperty, DatabaseRow } from '@/lib/types';
 import { PropertyEditor } from './PropertyEditor';
+import { RelationCell } from './RelationCell';
 
 interface TableViewProps {
   database: Database;
@@ -132,6 +133,20 @@ export const TableView: React.FC<TableViewProps> = ({
                 const isEditing =
                   editingCell?.rowId === row.id &&
                   editingCell?.propertyId === property.id;
+
+                // Special handling for relation type
+                if (property.type === 'relation' && property.config?.relationDatabaseId) {
+                  return (
+                    <td key={property.id} className="px-3 py-2 text-sm">
+                      <RelationCell
+                        relationDatabaseId={property.config.relationDatabaseId}
+                        value={value}
+                        onChange={(newValue) => handleCellChange(row.id, property.id, newValue)}
+                        multipleSelect={true}
+                      />
+                    </td>
+                  );
+                }
 
                 return (
                   <td
