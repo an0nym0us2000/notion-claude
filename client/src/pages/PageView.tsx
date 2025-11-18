@@ -3,10 +3,13 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { pageAPI, blockAPI } from '@/lib/api';
 import { usePageStore } from '@/stores/pageStore';
+import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { PageCanvas } from '@/components/layout/PageCanvas';
 import { BlockList } from '@/components/blocks/BlockList';
+import { PresenceAvatars } from '@/components/collaboration/PresenceAvatars';
+import { ConnectionStatus } from '@/components/collaboration/ConnectionStatus';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 
@@ -15,6 +18,9 @@ export const PageView: React.FC = () => {
   const { currentPage, setCurrentPage, blocks, addBlock } = usePageStore();
   const [title, setTitle] = useState('');
   const [isUpdatingTitle, setIsUpdatingTitle] = useState(false);
+
+  // Initialize Yjs collaboration
+  const { ydoc, provider, synced, connected } = useYjsCollaboration(pageId);
 
   const { data, isLoading } = useQuery({
     queryKey: ['page', pageId],
@@ -84,7 +90,11 @@ export const PageView: React.FC = () => {
     <div className="flex h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col">
-        <TopBar pageTitle={currentPage.title} />
+        <TopBar
+          pageTitle={currentPage.title}
+          presenceAvatars={<PresenceAvatars provider={provider} />}
+          connectionStatus={<ConnectionStatus connected={connected} synced={synced} />}
+        />
         <PageCanvas>
           {/* Page icon */}
           {currentPage.icon && (

@@ -11,6 +11,7 @@ import { pageRouter } from './routes/page.routes';
 import { blockRouter } from './routes/block.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { setupSocketServer } from './socket/socketServer';
+import { setupYjsServer } from './yjs/yjsServer';
 
 dotenv.config();
 
@@ -47,14 +48,16 @@ app.use('/api/blocks', blockRouter);
 // Error handling
 app.use(errorHandler);
 
-// Setup WebSocket server
+// Setup WebSocket servers
 setupSocketServer(io);
+setupYjsServer(io);
 
 const PORT = process.env.PORT || 4000;
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 WebSocket server ready`);
+  console.log(`🔄 Yjs collaboration server ready`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
 });
 
