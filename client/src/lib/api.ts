@@ -182,6 +182,11 @@ export const blockAPI = {
     const { data } = await api.post<ApiResponse<{ block: Block }>>('/blocks/reorder', payload);
     return data.data!.block;
   },
+
+  duplicate: async (id: string) => {
+    const { data } = await api.post<ApiResponse<{ block: Block }>>(`/blocks/${id}/duplicate`);
+    return data.data!.block;
+  },
 };
 
 export default api;

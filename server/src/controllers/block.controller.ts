@@ -285,3 +285,77 @@ export const reorderBlocks = async (req: AuthRequest, res: Response) => {
     },
   });
 };
+
+export const duplicateBlock = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401);
+  }
+
+  const { id } = req.params;
+
+  const block = await prisma.block.findUnique({
+    where: { id },
+    include: {
+      page: {
+        include: {
+          workspace: {
+            include: {
+              members: {
+                where: {
+                  userId: req.user.id,
+                },
+              },
+            },
+          },
+        },
+      },
+      childBlocks: true,
+    },
+  });
+
+  if (!block || block.page.workspace.members.length === 0) {
+    throw new AppError('Access denied', 403);
+  }
+
+  // Find next block to insert after
+  const nextBlock = await prisma.block.findFirst({
+    where: {
+      pageId: block.pageId,
+      parentId: block.parentId,
+      order: {
+        gt: block.order,
+      },
+    },
+    orderBy: {
+      order: 'asc',
+    },
+  });
+
+  const newOrder = generateOrder(block.order, nextBlock?.order);
+
+  // Create duplicate
+  const duplicatedBlock = await prisma.block.create({
+    data: {
+      type: block.type,
+      content: block.content,
+      properties: block.properties,
+      pageId: block.pageId,
+      parentId: block.parentId,
+      order: newOrder,
+    },
+    include: {
+      childBlocks: {
+        orderBy: {
+          order: 'asc',
+        },
+      },
+    },
+  });
+
+  res.status(201).json({
+    status: 'success',
+    data: {
+      block: duplicatedBlock,
+    },
+  });
+};

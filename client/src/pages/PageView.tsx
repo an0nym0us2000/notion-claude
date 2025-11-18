@@ -101,7 +101,7 @@ export const PageView: React.FC = () => {
           />
 
           {/* Blocks */}
-          <BlockList blocks={blocks} />
+          <BlockList blocks={blocks} pageId={pageId!} />
 
           {/* Add block button */}
           <div className="mt-4">

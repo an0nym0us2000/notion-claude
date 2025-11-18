@@ -6,25 +6,34 @@ import Link from '@tiptap/extension-link';
 import type { Block } from '@/lib/types';
 import { blockAPI } from '@/lib/api';
 
-interface TextBlockProps {
+interface HeadingBlockProps {
   block: Block;
+  level: 1 | 2 | 3;
   onUpdate?: (block: Block) => void;
   onEnter?: () => void;
   onBackspace?: () => void;
-  onSlash?: () => void;
 }
 
-export const TextBlock: React.FC<TextBlockProps> = ({
+export const HeadingBlock: React.FC<HeadingBlockProps> = ({
   block,
+  level,
   onUpdate,
   onEnter,
   onBackspace,
-  onSlash,
 }) => {
+  const placeholders: Record<number, string> = {
+    1: 'Heading 1',
+    2: 'Heading 2',
+    3: 'Heading 3',
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: false,
+        heading: {
+          levels: [1, 2, 3],
+        },
+        paragraph: false,
         bulletList: false,
         orderedList: false,
         blockquote: false,
@@ -35,7 +44,7 @@ export const TextBlock: React.FC<TextBlockProps> = ({
         openOnClick: false,
       }),
       Placeholder.configure({
-        placeholder: "Type '/' for commands...",
+        placeholder: placeholders[level],
       }),
     ],
     content: block.content || '',
@@ -44,25 +53,16 @@ export const TextBlock: React.FC<TextBlockProps> = ({
         class: 'outline-none',
       },
       handleKeyDown: (view, event) => {
-        // Handle Enter key
         if (event.key === 'Enter' && !event.shiftKey) {
           event.preventDefault();
           onEnter?.();
           return true;
         }
-
-        // Handle Backspace on empty block
         if (event.key === 'Backspace' && view.state.doc.textContent === '') {
           event.preventDefault();
           onBackspace?.();
           return true;
         }
-
-        // Handle slash for command menu
-        if (event.key === '/' && view.state.doc.textContent === '') {
-          onSlash?.();
-        }
-
         return false;
       },
     },
@@ -81,6 +81,13 @@ export const TextBlock: React.FC<TextBlockProps> = ({
     }
   }, [block.content, editor]);
 
+  // Set the heading level
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      editor.commands.setHeading({ level });
+    }
+  }, [editor, level]);
+
   const handleUpdate = async (content: any) => {
     try {
       const updatedBlock = await blockAPI.update(block.id, { content });
@@ -90,9 +97,15 @@ export const TextBlock: React.FC<TextBlockProps> = ({
     }
   };
 
+  const fontSizes: Record<number, string> = {
+    1: 'text-4xl',
+    2: 'text-2xl',
+    3: 'text-xl',
+  };
+
   return (
     <div className="group relative">
-      <div className="min-h-[24px]">
+      <div className={`${fontSizes[level]} font-bold min-h-[40px]`}>
         <EditorContent editor={editor} />
       </div>
     </div>

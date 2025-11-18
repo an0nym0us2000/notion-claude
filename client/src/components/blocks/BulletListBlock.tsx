@@ -6,27 +6,28 @@ import Link from '@tiptap/extension-link';
 import type { Block } from '@/lib/types';
 import { blockAPI } from '@/lib/api';
 
-interface TextBlockProps {
+interface BulletListBlockProps {
   block: Block;
   onUpdate?: (block: Block) => void;
   onEnter?: () => void;
   onBackspace?: () => void;
-  onSlash?: () => void;
 }
 
-export const TextBlock: React.FC<TextBlockProps> = ({
+export const BulletListBlock: React.FC<BulletListBlockProps> = ({
   block,
   onUpdate,
   onEnter,
   onBackspace,
-  onSlash,
 }) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        bulletList: {
+          HTMLAttributes: {
+            class: 'list-disc pl-6',
+          },
+        },
         heading: false,
-        bulletList: false,
-        orderedList: false,
         blockquote: false,
         codeBlock: false,
         horizontalRule: false,
@@ -35,7 +36,7 @@ export const TextBlock: React.FC<TextBlockProps> = ({
         openOnClick: false,
       }),
       Placeholder.configure({
-        placeholder: "Type '/' for commands...",
+        placeholder: 'List item',
       }),
     ],
     content: block.content || '',
@@ -44,25 +45,16 @@ export const TextBlock: React.FC<TextBlockProps> = ({
         class: 'outline-none',
       },
       handleKeyDown: (view, event) => {
-        // Handle Enter key
-        if (event.key === 'Enter' && !event.shiftKey) {
+        if (event.key === 'Enter' && view.state.doc.textContent === '') {
           event.preventDefault();
           onEnter?.();
           return true;
         }
-
-        // Handle Backspace on empty block
         if (event.key === 'Backspace' && view.state.doc.textContent === '') {
           event.preventDefault();
           onBackspace?.();
           return true;
         }
-
-        // Handle slash for command menu
-        if (event.key === '/' && view.state.doc.textContent === '') {
-          onSlash?.();
-        }
-
         return false;
       },
     },
@@ -92,8 +84,11 @@ export const TextBlock: React.FC<TextBlockProps> = ({
 
   return (
     <div className="group relative">
-      <div className="min-h-[24px]">
-        <EditorContent editor={editor} />
+      <div className="min-h-[24px] flex items-start">
+        <span className="mr-2 text-notion-text-secondary">•</span>
+        <div className="flex-1">
+          <EditorContent editor={editor} />
+        </div>
       </div>
     </div>
   );

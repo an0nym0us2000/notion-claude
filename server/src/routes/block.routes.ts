@@ -5,6 +5,7 @@ import {
   updateBlock,
   deleteBlock,
   reorderBlocks,
+  duplicateBlock,
 } from '../controllers/block.controller';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -27,5 +28,7 @@ router.patch('/:id', asyncHandler(updateBlock));
 router.delete('/:id', asyncHandler(deleteBlock));
 
 router.post('/reorder', asyncHandler(reorderBlocks));
+
+router.post('/:id/duplicate', asyncHandler(duplicateBlock));
 
 export { router as blockRouter };
