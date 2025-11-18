@@ -6,12 +6,16 @@ interface TopBarProps {
   pageTitle?: string;
   presenceAvatars?: React.ReactNode;
   connectionStatus?: React.ReactNode;
+  onCommentsClick?: () => void;
+  commentCount?: number;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   pageTitle,
   presenceAvatars,
   connectionStatus,
+  onCommentsClick,
+  commentCount = 0,
 }) => {
   const { user } = useAuthStore();
 
@@ -32,6 +36,22 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div className="flex items-center gap-3">
         {/* Presence avatars */}
         {presenceAvatars}
+
+        {/* Comments button */}
+        {onCommentsClick && (
+          <button
+            onClick={onCommentsClick}
+            className="px-3 py-1 text-sm text-notion-text-secondary hover:bg-notion-hover rounded flex items-center gap-1.5 relative"
+          >
+            <span>💬</span>
+            <span>Comments</span>
+            {commentCount > 0 && (
+              <span className="bg-notion-blue text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
+                {commentCount}
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Share button placeholder */}
         <button className="px-3 py-1 text-sm text-notion-text-secondary hover:bg-notion-hover rounded">

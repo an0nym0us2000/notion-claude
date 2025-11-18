@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { pageAPI, blockAPI } from '@/lib/api';
+import { pageAPI, blockAPI, api } from '@/lib/api';
 import { usePageStore } from '@/stores/pageStore';
 import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -12,12 +12,15 @@ import { PresenceAvatars } from '@/components/collaboration/PresenceAvatars';
 import { ConnectionStatus } from '@/components/collaboration/ConnectionStatus';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { CommentSidebar } from '@/components/comments/CommentSidebar';
 
 export const PageView: React.FC = () => {
   const { pageId } = useParams<{ pageId: string }>();
   const { currentPage, setCurrentPage, blocks, addBlock } = usePageStore();
   const [title, setTitle] = useState('');
   const [isUpdatingTitle, setIsUpdatingTitle] = useState(false);
+  const [isCommentSidebarOpen, setIsCommentSidebarOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   // Initialize Yjs collaboration
   const { ydoc, provider, synced, connected } = useYjsCollaboration(pageId);
@@ -34,6 +37,25 @@ export const PageView: React.FC = () => {
       setTitle(data.title);
     }
   }, [data, setCurrentPage]);
+
+  // Load comment count
+  useEffect(() => {
+    if (pageId) {
+      loadCommentCount();
+    }
+  }, [pageId]);
+
+  const loadCommentCount = async () => {
+    try {
+      const response = await api.get(`/api/comments`, {
+        params: { pageId },
+      });
+      const comments = response.data.data.comments || [];
+      setCommentCount(comments.length);
+    } catch (error) {
+      console.error('Error loading comment count:', error);
+    }
+  };
 
   const handleTitleChange = async (newTitle: string) => {
     setTitle(newTitle);
@@ -94,6 +116,8 @@ export const PageView: React.FC = () => {
           pageTitle={currentPage.title}
           presenceAvatars={<PresenceAvatars provider={provider} />}
           connectionStatus={<ConnectionStatus connected={connected} synced={synced} />}
+          onCommentsClick={() => setIsCommentSidebarOpen(true)}
+          commentCount={commentCount}
         />
         <PageCanvas>
           {/* Page icon */}
@@ -122,6 +146,14 @@ export const PageView: React.FC = () => {
           </div>
         </PageCanvas>
       </div>
+
+      {/* Comment Sidebar */}
+      <CommentSidebar
+        pageId={pageId!}
+        workspaceId={currentPage?.workspaceId}
+        isOpen={isCommentSidebarOpen}
+        onClose={() => setIsCommentSidebarOpen(false)}
+      />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import { blockRouter } from './routes/block.routes';
 import { databaseRouter } from './routes/database.routes';
 import { templateRouter } from './routes/template.routes';
 import { searchRouter } from './routes/search.routes';
+import commentRouter from './routes/comment.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { setupSocketServer } from './socket/socketServer';
 import { setupYjsServer } from './yjs/yjsServer';
@@ -50,6 +51,7 @@ app.use('/api/blocks', blockRouter);
 app.use('/api/databases', databaseRouter);
 app.use('/api/templates', templateRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/comments', commentRouter);
 
 // Error handling
 app.use(errorHandler);

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { MentionSuggestion } from './MentionSuggestion';
 
 interface Comment {
   id: string;
@@ -28,6 +29,7 @@ interface CommentThreadProps {
   comments: Comment[];
   pageId: string;
   blockId?: string;
+  workspaceId?: string;
   onCommentAdded?: (comment: Comment) => void;
   onCommentUpdated?: (comment: Comment) => void;
   onCommentDeleted?: (commentId: string) => void;
@@ -38,6 +40,7 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   comments,
   pageId,
   blockId,
+  workspaceId,
   onCommentAdded,
   onCommentUpdated,
   onCommentDeleted,
@@ -48,6 +51,12 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const [activeTextarea, setActiveTextarea] = useState<'new' | 'reply' | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
@@ -135,6 +144,74 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
     }
 
     return mentions;
+  };
+
+  const handleTextChange = (value: string, type: 'new' | 'reply') => {
+    if (type === 'new') {
+      setNewComment(value);
+    } else {
+      setReplyContent(value);
+    }
+
+    // Detect @ mentions
+    const cursorPosition = type === 'new'
+      ? textareaRef.current?.selectionStart || 0
+      : replyTextareaRef.current?.selectionStart || 0;
+
+    const textBeforeCursor = value.slice(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      // Check if @ is at start or preceded by space
+      const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' ';
+      if (charBeforeAt === ' ' || lastAtIndex === 0) {
+        const query = textBeforeCursor.slice(lastAtIndex + 1);
+        // Check if there's no space after @
+        if (!query.includes(' ')) {
+          setMentionQuery(query);
+          setActiveTextarea(type);
+          setShowMentions(true);
+
+          // Calculate position
+          const textarea = type === 'new' ? textareaRef.current : replyTextareaRef.current;
+          if (textarea) {
+            const rect = textarea.getBoundingClientRect();
+            setMentionPosition({
+              top: rect.bottom + window.scrollY + 4,
+              left: rect.left + window.scrollX,
+            });
+          }
+          return;
+        }
+      }
+    }
+
+    setShowMentions(false);
+  };
+
+  const handleMentionSelect = (mentionedUser: any) => {
+    const mentionText = `@[${mentionedUser.name || mentionedUser.email}](${mentionedUser.id})`;
+
+    if (activeTextarea === 'new') {
+      const cursorPosition = textareaRef.current?.selectionStart || 0;
+      const textBeforeCursor = newComment.slice(0, cursorPosition);
+      const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+      const textAfterCursor = newComment.slice(cursorPosition);
+
+      const newText = newComment.slice(0, lastAtIndex) + mentionText + ' ' + textAfterCursor;
+      setNewComment(newText);
+    } else if (activeTextarea === 'reply') {
+      const cursorPosition = replyTextareaRef.current?.selectionStart || 0;
+      const textBeforeCursor = replyContent.slice(0, cursorPosition);
+      const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+      const textAfterCursor = replyContent.slice(cursorPosition);
+
+      const newText = replyContent.slice(0, lastAtIndex) + mentionText + ' ' + textAfterCursor;
+      setReplyContent(newText);
+    }
+
+    setShowMentions(false);
+    setMentionQuery('');
   };
 
   const formatTimestamp = (timestamp: string): string => {
@@ -238,9 +315,10 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
             {replyTo === comment.id && (
               <div className="mt-2 ml-3">
                 <textarea
+                  ref={replyTextareaRef}
                   value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Write a reply..."
+                  onChange={(e) => handleTextChange(e.target.value, 'reply')}
+                  placeholder="Write a reply... (use @name to mention)"
                   className="w-full px-3 py-2 border border-notion-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-notion-blue"
                   rows={2}
                   autoFocus
@@ -316,9 +394,10 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
       {/* New Comment Form */}
       <div className="p-4 border-t border-notion-border">
         <textarea
+          ref={textareaRef}
           value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment... (use @username to mention)"
+          onChange={(e) => handleTextChange(e.target.value, 'new')}
+          placeholder="Add a comment... (use @name to mention)"
           className="w-full px-3 py-2 border border-notion-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-notion-blue"
           rows={3}
         />
@@ -332,6 +411,16 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Mention Suggestions */}
+      {showMentions && workspaceId && (
+        <MentionSuggestion
+          query={mentionQuery}
+          workspaceId={workspaceId}
+          onSelect={handleMentionSelect}
+          position={mentionPosition}
+        />
+      )}
     </div>
   );
 };
