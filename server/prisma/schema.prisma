@@ -242,3 +242,28 @@ model PageShare {
   @@index([expiresAt])
   @@map("page_shares")
 }
+
+// Comments (Phase 7)
+model Comment {
+  id           String    @id @default(uuid())
+  content      String // Comment text content
+  pageId       String // Page where comment was made
+  blockId      String? // Optional: specific block being commented on
+  parentId     String? // For threaded replies
+  parent       Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment[] @relation("CommentThread")
+  authorId     String // User who wrote the comment
+  mentions     String[] // Array of user IDs mentioned in comment
+  resolved     Boolean   @default(false) // Whether comment thread is resolved
+  resolvedBy   String? // User who resolved the comment
+  resolvedAt   DateTime? // When comment was resolved
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([pageId])
+  @@index([blockId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([resolved])
+  @@map("comments")
+}
