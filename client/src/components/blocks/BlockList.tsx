@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import type { Block, BlockType } from '@/lib/types';
@@ -7,6 +7,7 @@ import { SlashCommandMenu } from './SlashCommandMenu';
 import { BlockActionsMenu } from './BlockActionsMenu';
 import { DraggableBlock } from './DraggableBlock';
 import { NestedBlockList } from './NestedBlockList';
+import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { usePageStore } from '@/stores/pageStore';
 import { blockAPI } from '@/lib/api';
 
@@ -16,9 +17,31 @@ interface BlockListProps {
 }
 
 export const BlockList: React.FC<BlockListProps> = ({ blocks, pageId }) => {
-  const { updateBlock, addBlock, removeBlock } = usePageStore();
+  const { updateBlock, addBlock, removeBlock, selectAllBlocks, clearSelection } = usePageStore();
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuBlockId, setSlashMenuBlockId] = useState<string | null>(null);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+A or Ctrl+A to select all blocks
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a' && !e.shiftKey) {
+        // Check if we're not in an input/textarea
+        const target = e.target as HTMLElement;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
+          e.preventDefault();
+          selectAllBlocks();
+        }
+      }
+      // Escape to clear selection
+      if (e.key === 'Escape') {
+        clearSelection();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectAllBlocks, clearSelection]);
 
   const handleBlockUpdate = (updatedBlock: Block) => {
     updateBlock(updatedBlock.id, updatedBlock);
@@ -203,6 +226,7 @@ export const BlockList: React.FC<BlockListProps> = ({ blocks, pageId }) => {
           onOutdent={handleOutdent}
         />
       </div>
+      <BulkActionsToolbar pageId={pageId} />
     </DndProvider>
   );
 };
