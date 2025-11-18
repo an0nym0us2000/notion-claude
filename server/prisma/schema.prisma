@@ -1,0 +1,103 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String            @id @default(uuid())
+  email        String            @unique
+  passwordHash String
+  name         String?
+  avatar       String?
+  workspaces   WorkspaceMember[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@map("users")
+}
+
+model Workspace {
+  id        String            @id @default(uuid())
+  name      String
+  icon      String?
+  members   WorkspaceMember[]
+  pages     Page[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  role        String    @default("member") // owner, admin, member, viewer
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+model Page {
+  id          String    @id @default(uuid())
+  title       String    @default("Untitled")
+  icon        String?
+  coverImage  String?
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  parentPage  Page?     @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId    String?
+  childPages  Page[]    @relation("PageHierarchy")
+  blocks      Block[]
+  isPublished Boolean   @default(false)
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
+  @@index([parentId])
+  @@index([createdBy])
+  @@map("pages")
+}
+
+model Block {
+  id          String   @id @default(uuid())
+  type        String // text, heading1, heading2, heading3, todo, bullet, number, quote, code, divider
+  content     Json // Rich text content (will use Tiptap JSON format)
+  properties  Json? // Block-specific properties (e.g., checked for todo, language for code)
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId      String
+  parentBlock Block?   @relation("BlockNesting", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId    String?
+  childBlocks Block[]  @relation("BlockNesting")
+  order       Float // For ordering blocks (using fractional indexing)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([pageId])
+  @@index([parentId])
+  @@index([order])
+  @@map("blocks")
+}
+
+// For future real-time collaboration (Phase 3)
+model YjsDocument {
+  id        String   @id @default(uuid())
+  pageId    String   @unique
+  data      Bytes // Yjs binary update
+  version   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("yjs_documents")
+}
